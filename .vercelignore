@@ -1,0 +1,47 @@
+# =============================================================================
+# Vercel Ignore — Just Start (Phase 5)
+# =============================================================================
+# Files and directories excluded from Vercel deployments.
+# Reduces deployment size and build time.
+# =============================================================================
+
+# Development database
+db/
+*.db
+*.db-journal
+
+# Prisma local dev artifacts
+prisma/migrations/migration_lock.toml
+
+# Documentation (not needed at runtime)
+docs/
+
+# Example files
+examples/
+
+# Upload directory (local only)
+upload/
+
+# Development tools
+.eslintcache
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test and coverage
+coverage/
+.nyc_output/
+
+# Local env files (Vercel uses its own env vars)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

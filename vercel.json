@@ -1,0 +1,68 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "bun run build",
+  "installCommand": "bun install",
+  "outputDirectory": ".next",
+  "regions": ["iad1"],
+
+  "crons": [
+    {
+      "path": "/api/cron/expire-sessions",
+      "schedule": "0 * * * *"
+    }
+  ],
+
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=(), usb=()" }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, proxy-revalidate" },
+        { "key": "Pragma", "value": "no-cache" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.(js|css|woff2|woff|ttf|otf|svg|png|jpg|jpeg|ico|webp|avif)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/logo.svg",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
+      ]
+    }
+  ],
+
+  "functions": {
+    "src/app/api/engine/deconstruct/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/session/start/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/session/update/route.ts": {
+      "maxDuration": 10
+    },
+    "src/app/api/session/complete/route.ts": {
+      "maxDuration": 10
+    },
+    "src/app/api/events/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/cron/expire-sessions/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}
