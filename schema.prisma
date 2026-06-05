@@ -1,0 +1,96 @@
+// =============================================================================
+// Prisma Schema — Just Start (Phase 2)
+// =============================================================================
+// Database schema for the Just Start application.
+//
+// Production: PostgreSQL via Supabase
+// Local dev:  SQLite (sandbox default)
+//
+// Tables:
+//   profiles  — Anonymous user profiles
+//   sessions  — Task initiation sessions
+//   events    — Analytics events within sessions
+//   rate_limits — In-memory rate limit tracking (optional, can use Redis)
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Profiles
+// ---------------------------------------------------------------------------
+// Each anonymous user gets a profile on first visit.
+// No PII is stored — profiles exist solely to group sessions by user.
+// ---------------------------------------------------------------------------
+
+model Profile {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sessions  Session[]
+
+  @@map("profiles")
+}
+
+// ---------------------------------------------------------------------------
+// Sessions
+// ---------------------------------------------------------------------------
+// A session tracks a single task from entry to completion (or abandonment).
+// The state machine drives transitions; this table persists the result.
+//
+// Status lifecycle:
+//   active → completed | abandoned | expired
+//
+// depthReached tracks the deepest deconstruction level the user hit (0–3).
+// This is a key analytics metric.
+// ---------------------------------------------------------------------------
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  rawInput     String   @map("raw_input")
+  depthReached Int      @default(0) @map("depth_reached")
+  status       String   @default("active") // active | completed | abandoned | expired
+  startedAt    DateTime @default(now()) @map("started_at")
+  lastActiveAt DateTime @default(now()) @map("last_active_at")
+
+  profile Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events  Event[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([lastActiveAt])
+  @@map("sessions")
+}
+
+// ---------------------------------------------------------------------------
+// Events
+// ---------------------------------------------------------------------------
+// Discrete events recorded during a session for analytics.
+// payload is stored as JSON string for SQLite compatibility.
+// In production PostgreSQL, use Json type instead.
+//
+// Event types: SUBMIT_TASK, ACTION_GENERATED, TOO_BIG, ACTION_DONE,
+//              COMMIT_5_MIN, HIT_WALL, FINISHED, SESSION_EXPIRED
+// ---------------------------------------------------------------------------
+
+model Event {
+  id        String   @id @default(uuid())
+  sessionId String   @map("session_id")
+  eventType String   @map("event_type")
+  payload   String   @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("events")
+}

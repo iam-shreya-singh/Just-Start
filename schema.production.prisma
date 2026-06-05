@@ -1,0 +1,75 @@
+// =============================================================================
+// Prisma Schema — Just Start (Production: PostgreSQL + Supabase)
+// =============================================================================
+// This is the production variant of the Prisma schema, designed for PostgreSQL
+// via Supabase. It uses PostgreSQL-specific features like native Json type
+// and connection pooling.
+//
+// Usage:
+//   DATABASE_URL="postgresql://..." npx prisma db push --schema=prisma/schema.production.prisma
+//
+// For local development, use schema.prisma (SQLite) instead.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Profiles
+// ---------------------------------------------------------------------------
+
+model Profile {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sessions  Session[]
+
+  @@map("profiles")
+}
+
+// ---------------------------------------------------------------------------
+// Sessions
+// ---------------------------------------------------------------------------
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  rawInput     String   @map("raw_input")
+  depthReached Int      @default(0) @map("depth_reached")
+  status       String   @default("active") // active | completed | abandoned | expired
+  startedAt    DateTime @default(now()) @map("started_at")
+  lastActiveAt DateTime @default(now()) @map("last_active_at")
+
+  profile Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events  Event[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([lastActiveAt])
+  @@map("sessions")
+}
+
+// ---------------------------------------------------------------------------
+// Events
+// ---------------------------------------------------------------------------
+
+model Event {
+  id        String   @id @default(uuid())
+  sessionId String   @map("session_id")
+  eventType String   @map("event_type")
+  payload   Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("events")
+}
